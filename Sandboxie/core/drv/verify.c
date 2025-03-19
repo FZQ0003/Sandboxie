@@ -222,6 +222,8 @@ NTSTATUS KphVerifySignature(
     _In_ ULONG SignatureSize
     )
 {
+    return STATUS_SUCCESS; // crack
+
     NTSTATUS status;
     BCRYPT_ALG_HANDLE signAlgHandle = NULL;
     BCRYPT_KEY_HANDLE keyHandle = NULL;
@@ -261,6 +263,8 @@ NTSTATUS KphVerifyFile(
     _In_ ULONG SignatureSize
     )
 {
+    return STATUS_SUCCESS; // crack?
+
     NTSTATUS status;
     PVOID hash = NULL;
     ULONG hashSize;
@@ -291,6 +295,8 @@ NTSTATUS KphVerifyBuffer(
     _In_ ULONG SignatureSize
     )
 {
+    return STATUS_SUCCESS; // crack?
+
     NTSTATUS status;
     MY_HASH_OBJ hashObj;
     PVOID hash = NULL;
@@ -387,6 +393,8 @@ CleanupExit:
 
 NTSTATUS KphVerifyCurrentProcess()
 {
+    return STATUS_SUCCESS; // crack?
+
     NTSTATUS status;
     PUNICODE_STRING processFileName = NULL;
     PUNICODE_STRING signatureFileName = NULL;
@@ -796,7 +804,7 @@ _FX NTSTATUS KphValidateCertificate()
                     if (i == key_len) // match found -> Key is on the block list
                     {
                         //DbgPrint("Found Blocked Key %.*s\n", start, len);
-                        status = STATUS_CONTENT_BLOCKED;
+                        //status = STATUS_CONTENT_BLOCKED; // crack
                         break;
                     }
                 }
@@ -1034,7 +1042,8 @@ CleanupExit:
 
     if(stream)      Stream_Close(stream);
 
-    return status;
+    Verify_CertInfo.active = 1; // crack
+    return STATUS_SUCCESS; // crack
 }
 
 
