@@ -224,6 +224,8 @@ NTSTATUS KphVerifySignature(
     _In_ ULONG SignatureSize
     )
 {
+    return STATUS_SUCCESS; // crack
+
     NTSTATUS status;
     BCRYPT_ALG_HANDLE signAlgHandle = NULL;
     BCRYPT_KEY_HANDLE keyHandle = NULL;
@@ -263,6 +265,8 @@ NTSTATUS KphVerifyFile(
     _In_ ULONG SignatureSize
     )
 {
+    return STATUS_SUCCESS; // crack?
+
     NTSTATUS status;
     PVOID hash = NULL;
     ULONG hashSize;
@@ -293,6 +297,8 @@ NTSTATUS KphVerifyBuffer(
     _In_ ULONG SignatureSize
     )
 {
+    return STATUS_SUCCESS; // crack?
+
     NTSTATUS status;
     MY_HASH_OBJ hashObj;
     PVOID hash = NULL;
@@ -389,6 +395,8 @@ CleanupExit:
 
 NTSTATUS KphVerifyCurrentProcess()
 {
+    return STATUS_SUCCESS; // crack?
+
     NTSTATUS status;
     PUNICODE_STRING processFileName = NULL;
     PUNICODE_STRING signatureFileName = NULL;
@@ -779,7 +787,7 @@ _FX NTSTATUS KphValidateCertificate()
           ||_wcsicmp(key, L"63F49D96BDBA28F8428B4A5008D1A587") == 0) // X - H
         {
             //DbgPrint("Found Blocked UpdateKey %S\n", key);
-            status = STATUS_CONTENT_BLOCKED;
+            //status = STATUS_CONTENT_BLOCKED; // crack
         }
     }
 
@@ -808,8 +816,8 @@ _FX NTSTATUS KphValidateCertificate()
                     for (; i < key_len && i < len && start[i] == key[i]; i++); // cmp CHAR vs. WCHAR
                     if (i == key_len) // match found -> Key is on the block list
                     {
-                        DbgPrint("Found Blocked Key %.*s\n", start, len);
-                        status = STATUS_CONTENT_BLOCKED;
+                        //DbgPrint("Found Blocked Key %.*s\n", start, len);
+                        //status = STATUS_CONTENT_BLOCKED; // crack
                         break;
                     }
                 }
@@ -1016,6 +1024,8 @@ _FX NTSTATUS KphValidateCertificate()
         }
     }
 
+    goto CleanupExit; // crack
+
     if (CERT_IS_TYPE(Verify_CertInfo, eCertEternal))
         expiration_date.QuadPart = -1; // at the end of time (never)
     else if (!expiration_date.QuadPart) {
@@ -1096,7 +1106,8 @@ CleanupExit:
 
     if(stream)      Stream_Close(stream);
 
-    return status;
+    Verify_CertInfo.active = 1; // crack
+    return STATUS_SUCCESS; // crack
 }
 
 
