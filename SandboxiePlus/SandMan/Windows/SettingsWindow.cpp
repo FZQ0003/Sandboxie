@@ -255,6 +255,10 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	ui.cmbOnClose->addItem(tr("Close"), "Close");
 	ui.cmbOnClose->addItem(tr("Hide (Run invisible in Background)"), "Hide");
 
+	ui.cmbGrouping->addItem(tr("Remember previous state"), 0);
+	ui.cmbGrouping->addItem(tr("Expand all groups"), 1);
+	ui.cmbGrouping->addItem(tr("Collapse all groups"), 2);
+
 	ui.cmbDPI->addItem(tr("None"), 0);
 	ui.cmbDPI->addItem(tr("Native"), 1);
 	ui.cmbDPI->addItem(tr("Qt"), 2);
@@ -395,6 +399,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkColorIcons, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
 	connect(ui.chkOverlayIcons, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
 	connect(ui.chkHideCore, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.cmbGrouping, SIGNAL(currentIndexChanged(int)), this, SLOT(OnOptChanged()));
 
 
 	connect(ui.cmbFontScale, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
@@ -1168,6 +1173,8 @@ void CSettingsWindow::LoadSettings()
 	ui.chkColorIcons->setChecked(theConf->GetBool("Options/ColorBoxIcons", false));
 	ui.chkOverlayIcons->setChecked(theConf->GetBool("Options/UseOverlayIcons", true));
 	ui.chkHideCore->setChecked(theConf->GetBool("Options/HideSbieProcesses", false));
+	ui.cmbGrouping->setCurrentIndex(theConf->GetInt("Options/BoxGroupHandling", 0));
+	
 
 
 	//ui.cmbFontScale->setCurrentIndex(ui.cmbFontScale->findData(theConf->GetInt("Options/FontScaling", 100)));
@@ -1671,6 +1678,7 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("Options/ColorBoxIcons", ui.chkColorIcons->isChecked());
 	theConf->SetValue("Options/UseOverlayIcons", ui.chkOverlayIcons->isChecked());
 	theConf->SetValue("Options/HideSbieProcesses", ui.chkHideCore->isChecked());
+	theConf->SetValue("Options/BoxGroupHandling", ui.cmbGrouping->currentIndex());
 
 	CIniHighlighter::ClearLanguageCache();
 	CIniHighlighter::ClearThemeCache();
@@ -3336,6 +3344,12 @@ void CSettingsWindow::SaveCompletionConsent()
 	theConf->SetValue("Options/AutoCompletionConsent", m_AutoCompletionConsent);
 }
 
+QString CSettingsWindow::localizedCompletionShortcut()
+{
+	QKeySequence shortcut = QKeySequence(Qt::CTRL + Qt::Key_Space);
+	return shortcut.toString(QKeySequence::NativeText); // Returns the localized shortcut
+}
+
 // Show consent dialog and return the chosen autocomplete state
 // Returns: Qt::Unchecked (0) if cancelled, Qt::PartiallyChecked (1) for Basic, Qt::Checked (2) for Full
 int CSettingsWindow::ShowConsentDialog()
@@ -3346,20 +3360,22 @@ int CSettingsWindow::ShowConsentDialog()
 	consentBox.setText(tr("Autocomplete feature requires your consent to proceed."));
 	consentBox.setInformativeText(
 		tr("If you are unsure about the settings displayed in the autocomplete popup, we strongly recommend consulting the software's documentation or source code before proceeding. Enabling this feature without proper understanding may lead to unintended consequences, for which you will be solely responsible.\n\n"
-		   "Choose autocomplete mode:\n"
-		   "• Basic: Manual completion (Ctrl+Space) with case correction\n"
-		   "• Full: Automatic completion while typing with case correction")
+			"Choose autocomplete mode:\n"
+			"%1 Manual: Autocomplete suggestions with %2.\n"
+			"%1 While Typing: Autocomplete suggestions while typing.")
+		.arg(QChar(0x2022))   // Bullet symbol
+		.arg(localizedCompletionShortcut()) // Localized Ctrl+Space
 	);
-	
-	QPushButton* basicButton = consentBox.addButton(tr("Basic"), QMessageBox::YesRole);
-	basicButton->setToolTip(tr("Enable manual completion only (Ctrl+Space) with case correction"));
-	
-	QPushButton* fullButton = consentBox.addButton(tr("Full"), QMessageBox::YesRole);
-	fullButton->setToolTip(tr("Enable automatic completion while typing with case correction"));
-	
+
+	QPushButton* basicButton = consentBox.addButton(tr("Manual"), QMessageBox::YesRole);
+	basicButton->setToolTip(tr("Triggers autocomplete suggestions with %1.").arg(localizedCompletionShortcut()));
+
+	QPushButton* fullButton = consentBox.addButton(tr("While Typing"), QMessageBox::YesRole);
+	fullButton->setToolTip(tr("Triggers autocomplete suggestions while typing."));
+
 	QPushButton* cancelButton = consentBox.addButton(tr("Cancel"), QMessageBox::NoRole);
-	cancelButton->setToolTip(tr("Keep autocomplete disabled"));
-	
+	cancelButton->setToolTip(tr("Keeps autocomplete suggestions disabled."));
+
 	consentBox.setDefaultButton(basicButton);
 	
 	consentBox.exec();
