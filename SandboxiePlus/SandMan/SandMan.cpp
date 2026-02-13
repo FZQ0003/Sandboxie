@@ -38,6 +38,7 @@
 #include "Windows/BoxImageWindow.h"
 #include "Wizards/BoxAssistant.h"
 #include "Engine/BoxEngine.h"
+#include "BoxTransfer.h"
 #include "Engine/ScriptManager.h"
 #include "AddonManager.h"
 #include "Windows/PopUpWindow.h"
@@ -510,8 +511,10 @@ void CSandMan::CreateMenus(bool bAdvanced)
 	m_pMenuFile = m_pMenuBar->addMenu(tr("&Sandbox"));
 		m_pNewBox = m_pMenuFile->addAction(CSandMan::GetIcon("NewBox"), tr("Create New Box"), this, SLOT(OnSandBoxAction()));
 		m_pNewGroup = m_pMenuFile->addAction(CSandMan::GetIcon("Group"), tr("Create Box Group"), this, SLOT(OnSandBoxAction()));
-		m_pImportBox = m_pMenuFile->addAction(CSandMan::GetIcon("UnPackBox"), tr("Import Box"), this, SLOT(OnSandBoxAction()));
-		m_pImportBox->setEnabled(CArchive::IsInit());
+		m_pImportBoxes = m_pMenuFile->addAction(CSandMan::GetIcon("UnPackBox"), tr("Import Boxes"), this, SLOT(OnSandBoxAction()));
+		m_pImportBoxes->setEnabled(CArchive::IsInit());
+		m_pExportBoxes = m_pMenuFile->addAction(CSandMan::GetIcon("PackBox"), tr("Export Boxes"), this, SLOT(OnSandBoxAction()));
+		m_pExportBoxes->setEnabled(CArchive::IsInit());
 		m_pMenuFile->addSeparator();
 		m_pRunBoxed = m_pMenuFile->addAction(CSandMan::GetIcon("Run"), tr("Run Sandboxed"), this, SLOT(OnSandBoxAction()));
 		m_pPauseAll = m_pMenuFile->addAction(CSandMan::GetIcon("Pause"), tr("Suspend All Processes"), this, SLOT(OnPauseAll()));
@@ -544,7 +547,7 @@ void CSandMan::CreateMenus(bool bAdvanced)
 		m_pMenuFile->addSeparator();
 		m_pRestart = m_pMenuFile->addAction(CSandMan::GetIcon("Shield9"), tr("Restart As Admin"), this, SLOT(OnRestartAsAdmin()));
 		m_pRestart->setEnabled(!IsElevated());
-		m_pExit = m_pMenuFile->addAction(CSandMan::GetIcon("Exit"), tr("Exit"), this, SLOT(OnExit()));
+		m_pExit = m_pMenuFile->addAction(CSandMan::GetIcon("Quit"), tr("Exit"), this, SLOT(OnExit()));
 
 
 	m_pMenuView = m_pMenuBar->addMenu(tr("&View"));
@@ -706,7 +709,7 @@ void CSandMan::CreateOldMenus()
 		}
 		m_pRestart = m_pMenuFile->addAction(CSandMan::GetIcon("Shield9"), tr("Restart As Admin"), this, SLOT(OnRestartAsAdmin()));
 		m_pRestart->setEnabled(!IsElevated());
-		m_pExit = m_pMenuFile->addAction(CSandMan::GetIcon("Exit"), tr("Exit"), this, SLOT(OnExit()));
+		m_pExit = m_pMenuFile->addAction(CSandMan::GetIcon("Quit"), tr("Exit"), this, SLOT(OnExit()));
 
 	m_pMenuView = m_pMenuBar->addMenu(tr("&View"));
 
@@ -744,8 +747,10 @@ void CSandMan::CreateOldMenus()
 		m_pSandbox->addSeparator();
 		m_pNewBox = m_pSandbox->addAction(CSandMan::GetIcon("NewBox"), tr("Create New Sandbox"), this, SLOT(OnSandBoxAction()));
 		m_pNewGroup = m_pSandbox->addAction(CSandMan::GetIcon("Group"), tr("Create New Group"), this, SLOT(OnSandBoxAction()));
-		m_pImportBox = m_pSandbox->addAction(CSandMan::GetIcon("UnPackBox"), tr("Import Sandbox"), this, SLOT(OnSandBoxAction()));
-		m_pImportBox->setEnabled(CArchive::IsInit());
+		m_pImportBoxes = m_pSandbox->addAction(CSandMan::GetIcon("UnPackBox"), tr("Import Sandboxes"), this, SLOT(OnSandBoxAction()));
+		m_pImportBoxes->setEnabled(CArchive::IsInit());
+		m_pExportBoxes = m_pSandbox->addAction(CSandMan::GetIcon("PackBox"), tr("Export Sandboxes"), this, SLOT(OnSandBoxAction()));
+		m_pExportBoxes->setEnabled(CArchive::IsInit());
 
 		QAction* m_pSetContainer = m_pSandbox->addAction(CSandMan::GetIcon("Advanced"), tr("Set Container Folder"), this, SLOT(OnSettingsAction()));
 		m_pSetContainer->setData("Sandbox");
@@ -840,7 +845,7 @@ QList<ToolBarAction> CSandMan::GetAvailableToolBarActions()
 			ToolBarAction{ "NewBoxMenu", nullptr, tr("New-Box Menu") },  //tr: Name of button in toolbar for showing actions new box, new group, import},
 			ToolBarAction{ "NewBox", m_pNewBox },
 			ToolBarAction{ "NewGroup", m_pNewGroup },
-			ToolBarAction{ "ImportBox", m_pImportBox },
+			ToolBarAction{ "ImportBox", m_pImportBoxes },
 			ToolBarAction{ "", nullptr },        // separator
 			ToolBarAction{ "RunBoxed", m_pRunBoxed },
 			ToolBarAction{ "IsBoxed", m_pWndFinder },
@@ -1012,7 +1017,7 @@ void CSandMan::CreateToolBar(bool rebuild)
 			auto menu = new QMenu(but);
 			menu->addAction(m_pNewBox);
 			menu->addAction(m_pNewGroup);
-			menu->addAction(m_pImportBox);
+			menu->addAction(m_pImportBoxes);
 			but->setMenu(menu);
 			QObject::connect(but, &QToolButton::clicked, this, [this]() {GetBoxView()->AddNewBox();});
 			m_pNewBoxButton = but;
@@ -1768,8 +1773,11 @@ void CSandMan::dragEnterEvent(QDragEnterEvent* e)
 
 bool CSandMan::RunSandboxed(const QStringList& Commands, QString BoxName, const QString& WrkDir, bool bShowFCP)
 {
-	if (BoxName.isEmpty())
+	if (BoxName.isEmpty()) {
 		BoxName = theAPI->GetGlobalSettings()->GetText("DefaultBox", "DefaultBox");
+		if(theConf->GetBool("Options/RememberLastBox", false))
+			BoxName = theConf->GetString("Options/LastUsedBox", BoxName);
+	}
 	CSelectBoxWindow* pSelectBoxWindow = new CSelectBoxWindow(Commands, BoxName, WrkDir, g_GUIParent);
 	if (bShowFCP) pSelectBoxWindow->ShowFCP();
 	connect(this, SIGNAL(Closed()), pSelectBoxWindow, SLOT(close()));
@@ -1779,6 +1787,9 @@ bool CSandMan::RunSandboxed(const QStringList& Commands, QString BoxName, const 
 
 SB_RESULT(quint32) CSandMan::RunStart(const QString& BoxName, const QString& Command, CSbieAPI::EStartFlags Flags, const QString& WorkingDir, QProcess* pProcess)
 {
+	if(theConf->GetBool("Options/RememberLastBox", false))
+		theConf->SetValue("Options/LastUsedBox", BoxName);
+
 	auto pBoxEx = theAPI->GetBoxByName(BoxName).objectCast<CSandBoxPlus>();
 	if (pBoxEx && pBoxEx->UseImageFile() && pBoxEx->GetMountRoot().isEmpty()) 
 	{
@@ -2710,7 +2721,8 @@ void CSandMan::UpdateState()
 	m_pRunBoxed->setEnabled(isConnected);
 	m_pNewBox->setEnabled(isConnected);
 	m_pNewGroup->setEnabled(isConnected);
-	m_pImportBox->setEnabled(isConnected);
+	m_pImportBoxes->setEnabled(isConnected);
+	m_pExportBoxes->setEnabled(isConnected);
 	m_pPauseAll->setEnabled(isConnected);
 	m_pEmptyAll->setEnabled(isConnected);
 	m_pLockAll->setEnabled(isConnected);
@@ -3336,8 +3348,10 @@ void CSandMan::OnSandBoxAction()
 		GetBoxView()->AddNewBox();
 	else if (pAction == m_pNewGroup)
 		GetBoxView()->AddNewGroup();
-	else if (pAction == m_pImportBox)
-		GetBoxView()->ImportSandbox();
+	else if (pAction == m_pImportBoxes)
+		ImportMultiBoxes(this);
+	else if (pAction == m_pExportBoxes)
+		ExportMultiBoxes(this);
 	else if (pAction == m_pRunBoxed)
 		RunSandboxed(QStringList() << "run_dialog");
 }

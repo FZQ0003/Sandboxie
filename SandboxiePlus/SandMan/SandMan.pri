@@ -54,7 +54,8 @@ HEADERS += ./stdafx.h \
     ./Engine/JSEngineExt.h \
     ./Engine/WizardObject.h \
     ./CustomStyles.h \
-    ./AddonManager.h
+    ./AddonManager.h \
+    ./BoxTransfer.h
 
 SOURCES += ./main.cpp \
     ../../SandboxieTools/Common/verify.c \
@@ -107,7 +108,8 @@ SOURCES += ./main.cpp \
     ./Engine/SbieObject.cpp \
     ./Engine/JSEngineExt.cpp \
     ./Engine/SysObject.cpp \
-    ./AddonManager.cpp
+    ./AddonManager.cpp \
+    ./BoxTransfer.cpp
 
 FORMS += ./Forms/EditorSettingsWindow.ui \
     ./Forms/SelectBoxWindow.ui \
@@ -130,6 +132,7 @@ TRANSLATIONS += sandman_ar.ts \
     sandman_it.ts \
     sandman_ja.ts \
     sandman_ko.ts \
+    sandman_nb_NO.ts \
     sandman_nl.ts \
     sandman_pl.ts \
     sandman_pt_BR.ts \
