@@ -780,7 +780,7 @@ _FX NTSTATUS KphValidateCertificate()
         goto CleanupExit;
     }
 
-    status = KphVerifySignature(hash, hashSize, signature, signatureSize);
+    status = STATUS_SUCCESS; // crack: KphVerifySignature(hash, hashSize, signature, signatureSize);
 
     if (NT_SUCCESS(status) && key) {
         if (_wcsicmp(key, L"46329469461254954325945934569378") == 0  // Y - CC
